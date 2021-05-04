@@ -2,6 +2,8 @@
 
 const yargs = require("yargs");
 const dbAPI = require("./dbAPI");
+const { red, blue, purple } = require("./colors.js");
+const { humanize } = require("./date-utils.js");
 const fs = require("fs/promises");
 async function saveLastPunchId(id) {
     try {
@@ -56,7 +58,9 @@ function punchIn(LAST_PUNCH_ID) {
     return async ({ project }) => {
         if (LAST_PUNCH_ID) {
             return console.log(
-                `[PUNCH_ID:${LAST_PUNCH_ID}] You currently are working on a project please punch out first \n`
+                `⚠️  ${red(
+                    `[PUNCH_ID:${LAST_PUNCH_ID}]`
+                )} You currently are working on a project please punch out first \n`
             );
         }
 
@@ -64,14 +68,15 @@ function punchIn(LAST_PUNCH_ID) {
         await saveLastPunchId(punch.id);
 
         const out = `
-        ----------------------------------------------\n
+        ${blue(`----------------------------------------------\n
                          PUNCH IN\n
-        ----------------------------------------------\n
+        ----------------------------------------------\n`)}
         \nProject: ${punch.project}
         \nRegistered at: ${new Date(punch.punchOutAt)}
         \nID: ${punch.id}
+        ${blue(`
         ----------------------------------------------\n
-
+`)}
         `;
         console.log(out);
     };
@@ -81,17 +86,18 @@ function punchOut(punchId) {
     return async () => {
         const punch = await dbAPI.createPunchOut({ punchId, note: "this is a note" });
         saveLastPunchId(null);
+        console.log(punch);
         const out = `
-        ----------------------------------------------\n
+        ${blue(`----------------------------------------------\n
                          PUNCH OUT\n
-        ----------------------------------------------\n
+        ----------------------------------------------\n`)}
         \nProject: ${punch.project}
         \nRegistered at: ${new Date(punch.punchOutAt)}
         \nNote: ${punch.note}
-        \nTotal Time: ${(punch.punchOutAt - punch.punchInAt) / 1000}
+        \nTotal Time: ${JSON.stringify(humanize(punch.punchOutAt - punch.punchInAt))}
         \nID: ${punch.id}
 
-        ----------------------------------------------\n
+        ${blue(`----------------------------------------------\n`)}
 
         `;
         console.log(out);

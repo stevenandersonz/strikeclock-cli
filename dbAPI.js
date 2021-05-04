@@ -21,8 +21,13 @@ async function createPunchIn({ project }) {
 
 async function createPunchOut({ punchId, note }) {
     try {
-        const punch = await getPunchById(punchId);
-        await db.put(punchId, JSON.stringify({ ...punch, punchOutAt: new Date().getTime(), note }));
+        let punch = await getPunchById(punchId);
+        punch = {
+            ...punch,
+            punchOutAt: new Date().getTime(),
+            note,
+        };
+        await db.put(punchId, JSON.stringify(punch));
         return punch;
     } catch (e) {
         throw new Error("Couln't register punch out");
