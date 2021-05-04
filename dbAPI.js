@@ -43,4 +43,27 @@ async function getPunchById(id) {
     }
 }
 
-module.exports = { createPunchIn, createPunchOut, getPunchById };
+async function getLastPunchId() {
+    try {
+        const lastPunchId = await db.get("LAST_PUNCH_ID");
+        return lastPunchId;
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+async function saveLastPunchId(lastPunchId) {
+    try {
+        await db.put("LAST_PUNCH_ID", lastPunchId);
+        return true;
+    } catch (e) {
+        console.error(e);
+    }
+}
+module.exports = {
+    createPunchIn,
+    createPunchOut,
+    getPunchById,
+    saveLastPunchId,
+    getLastPunchId,
+};

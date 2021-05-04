@@ -7,5 +7,5 @@ function toColor(color) {
 const blue = toColor("#a5d6ff");
 const red = toColor("#ff7b72");
 const purple = toColor("#d2a8ff");
-
-module.exports = { blue, red, purple };
+const orange = toColor("#ffa657");
+module.exports = { blue, red, purple, orange };

@@ -2,28 +2,12 @@
 
 const yargs = require("yargs");
 const dbAPI = require("./dbAPI");
-const { red, blue, purple } = require("./colors.js");
+const { red, blue, purple, orange } = require("./colors.js");
 const { humanize } = require("./date-utils.js");
 const fs = require("fs/promises");
-async function saveLastPunchId(id) {
-    try {
-        await fs.writeFile("./.pclock.json", JSON.stringify({ LAST_PUNCH_ID: id }), "utf8");
-    } catch (err) {
-        console.log(err);
-    }
-}
 
-async function loadLastPunchId() {
-    try {
-        const data = await fs.readFile("./.pclock.json", "utf8");
-        return JSON.parse(data);
-    } catch (err) {
-        console.log(err);
-    }
-}
 async function cli() {
-    const punchSettings = await loadLastPunchId();
-    const { LAST_PUNCH_ID } = punchSettings;
+    const LAST_PUNCH_ID = await dbAPI.getLastPunchId();
     yargs
         .scriptName("punching-clock")
         .usage("$0 <cmd> [args]")
@@ -56,27 +40,16 @@ async function cli() {
 
 function punchIn(LAST_PUNCH_ID) {
     return async ({ project }) => {
-        if (LAST_PUNCH_ID) {
+        if (LAST_PUNCH_ID !== "0") {
             return console.log(
-                `⚠️  ${red(
-                    `[PUNCH_ID:${LAST_PUNCH_ID}]`
-                )} You currently are working on a project please punch out first \n`
+                `⚠️  ${red(`[PUNCH_ID:${LAST_PUNCH_ID}]`)} You need to punch out first \n`
             );
         }
 
         const punch = await dbAPI.createPunchIn({ project });
-        await saveLastPunchId(punch.id);
-
+        await dbAPI.saveLastPunchId(punch.id);
         const out = `
-        ${blue(`----------------------------------------------\n
-                         PUNCH IN\n
-        ----------------------------------------------\n`)}
-        \nProject: ${punch.project}
-        \nRegistered at: ${new Date(punch.punchOutAt)}
-        \nID: ${punch.id}
-        ${blue(`
-        ----------------------------------------------\n
-`)}
+        [${blue(project)}] Punched in at ${purple(new Date(punch.punchInAt).toLocaleString())}
         `;
         console.log(out);
     };
@@ -85,20 +58,20 @@ function punchIn(LAST_PUNCH_ID) {
 function punchOut(punchId) {
     return async () => {
         const punch = await dbAPI.createPunchOut({ punchId, note: "this is a note" });
-        saveLastPunchId(null);
-        console.log(punch);
+        await dbAPI.saveLastPunchId(0);
+
+        const duration = humanize(punch.punchOutAt - punch.punchInAt);
         const out = `
-        ${blue(`----------------------------------------------\n
-                         PUNCH OUT\n
-        ----------------------------------------------\n`)}
-        \nProject: ${punch.project}
-        \nRegistered at: ${new Date(punch.punchOutAt)}
-        \nNote: ${punch.note}
-        \nTotal Time: ${JSON.stringify(humanize(punch.punchOutAt - punch.punchInAt))}
-        \nID: ${punch.id}
-
-        ${blue(`----------------------------------------------\n`)}
-
+        [${blue(punch.project)}] Punched out at ${purple(
+            new Date(punch.punchOutAt).toLocaleString()
+        )}
+        \n\t You worked for a total time of ${orange(
+            duration.hours > 0
+                ? `${duration.hours} hours, `
+                : duration.minutes > 0
+                ? `${duration.minutes} minutes and ${duration.seconds} seconds.`
+                : `${duration.seconds} seconds `
+        )}
         `;
         console.log(out);
     };
