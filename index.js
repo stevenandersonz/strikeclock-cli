@@ -1,4 +1,5 @@
-const cliStore = require("./cli.store");
+#!/usr/bin/env node
+const { cliStore } = require("./cli.store");
 const yargs = require("yargs");
 
 function startCLI() {
@@ -8,7 +9,7 @@ function startCLI() {
       .usage("$0 <cmd> [args]")
       .command(
         "in [project]",
-        "",
+        "Strike into a project",
         (yargs) => {
           yargs.positional("project", {
             type: "string",
@@ -18,10 +19,21 @@ function startCLI() {
         },
         cliStore.strikeIn
       )
-      .command("out", "", cliStore.strikeOut)
+      .command(
+        "out",
+        "Strike out of a project",
+        (yargs) => {
+          yargs.option("n", {
+            alias: "note",
+            describe: "appends a note to the strike",
+            type: "string",
+          });
+        },
+        cliStore.strikeOut
+      )
       .command(
         "list [project]",
-        "",
+        "List all the strikes for a particular project",
         (yargs) => {
           yargs.positional("project", {
             type: "string",

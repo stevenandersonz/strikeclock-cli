@@ -43,14 +43,17 @@ class CLIStore {
       path.join(this.templatePath, `${type}.pug`)
     );
     return async (data) =>
-      this.reportGenerator(reportPath, compileFunction, data);
+      await this.reportGenerator(reportPath, compileFunction, data);
   }
   async setup() {
-    this.LAST_PUNCH_ID = await dbAPI.getLastPunchId();
+    try {
+      this.LAST_PUNCH_ID = await dbAPI.getLastPunchId();
+    } catch (e) {
+      this.error("ERR", "couldn't get Last Puch");
+    }
   }
   async strikeIn({ project }) {
     try {
-      console.log(this);
       if (this.LAST_PUNCH_ID !== "0")
         return this.error(
           `PUNCH_ID:${this.LAST_PUNCH_ID}`,
@@ -68,10 +71,10 @@ class CLIStore {
     }
   }
 
-  async strikeOut() {
+  async strikeOut({ n, note }) {
     const punch = await dbAPI.createPunchOut({
       punchId: this.LAST_PUNCH_ID,
-      note: "this is a note",
+      note: n || note ? n : "",
     });
     await dbAPI.saveLastPunchId(0);
 
@@ -139,4 +142,6 @@ function binder(target) {
   return proxy;
 }
 
-module.exports = binder(new CLIStore());
+const cliStore = binder(new CLIStore());
+
+module.exports = { cliStore };

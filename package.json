@@ -1,13 +1,17 @@
 {
-  "name": "punching-clock",
+  "name": "strike-clock",
   "version": "1.0.0",
-  "description": "",
+  "description": "A minimalist timer that makes keeping track of time easier.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "bin": {
+    "skclock": "./index.js"
+  },
+  "author": "Steven Anderson",
+  "license": "MIT",
+  "repository": "stevenandersonz/strikeclock-cli",
   "dependencies": {
     "chalk": "^4.1.1",
     "level": "^7.0.0",
@@ -16,5 +20,8 @@
     "pug": "^3.0.2",
     "uuid": "^8.3.2",
     "yargs": "^16.2.0"
+  },
+  "engines": {
+    "node": ">=14"
   }
 }
