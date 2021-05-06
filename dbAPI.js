@@ -17,7 +17,13 @@ async function createPunchIn({ project }) {
     throw new Error("Couln't register punch");
   }
 }
-
+async function clear() {
+  try {
+    await db.clear();
+  } catch (e) {
+    throw new Error("Couln't delete");
+  }
+}
 async function createPunchOut({ punchId, note }) {
   try {
     let punch = await getPunchById(punchId);
@@ -109,4 +115,5 @@ module.exports = {
   getLastPunchId,
   getPunchByProject,
   getAllPunch,
+  clear,
 };

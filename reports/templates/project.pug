@@ -1,0 +1,24 @@
+<html>
+head 
+    link(rel="stylesheet", type="text/css", href="./templates/table.css")
+body
+    table(class="pretty-table")
+        thead
+            tr
+                th ID
+                th Project 
+                th In 
+                th Out 
+                th Duration
+                th Note 
+            tr
+        tbody 
+            each data in dataList
+                tr
+                    td= data.id
+                    td= data.project
+                    td= data.in
+                    td= data.out
+                    td= data.duration
+                    td= data.note
+</html>
