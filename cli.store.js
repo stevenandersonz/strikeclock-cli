@@ -1,12 +1,19 @@
 const dbAPI = require("./dbAPI");
 const pug = require("pug");
 const open = require("open");
-const { red, blue, purple, orange } = require("./colors.js");
-const { formatError, formatInfo, formatLog } = require("./utils");
+const R = require("ramda");
+const { purple } = require("./colors.js");
+const { formatError, formatInfo, formatSuccess } = require("./utils");
 const { getProjectHTMLReport, getShortProjectReport } = require("./data-utils");
 const { Duration } = require("./date-utils.js");
 const fs = require("fs/promises");
 const path = require("path");
+
+const emptyFunction = R.identity(() => {});
+
+const safeLog = R.curry((test, logger) =>
+  R.ifElse(() => R.not(test), logger, emptyFunction)
+);
 
 class CLIStore {
   constructor(
@@ -16,11 +23,15 @@ class CLIStore {
   ) {
     this.exportPath = exportPath;
     this.templatePath = templatePath;
-    this.LAST_PUNCH_ID = "";
+    this.lastStrikeId = "";
     this.args = args;
-    this.info = (t, d) => console.info(formatInfo(t, d));
-    this.error = (t, d) => console.error(formatError(t, d));
-    this.log = (t, d) => console.log(formatLog(t, d));
+    this.test = false;
+    this.safeLog = safeLog(this.test);
+    this.success = this.safeLog((msg) => console.info(formatSuccess(msg)));
+    this.info = this.safeLog((title, desc) =>
+      console.info(formatInfo(title, desc))
+    );
+    this.error = this.safeLog((err) => console.error(formatError(err)));
     this.table = console.table;
   }
   async reportGenerator(reportPath, compileFunction, data) {
@@ -33,7 +44,7 @@ class CLIStore {
       );
       open(reportPath);
     } catch (e) {
-      this.error("REPORT FAILED", e);
+      this.error(e);
     }
   }
 
@@ -47,63 +58,62 @@ class CLIStore {
   }
   async setup() {
     try {
-      this.LAST_PUNCH_ID = await dbAPI.getLastPunchId();
+      this.lastStrikeId = await dbAPI.getLastPunchId();
     } catch (e) {
-      this.error("ERR", "couldn't get Last Puch");
+      this.error(e);
     }
   }
   async strikeIn({ project }) {
     try {
-      if (this.LAST_PUNCH_ID !== "0")
-        return this.error(
-          `PUNCH_ID:${this.LAST_PUNCH_ID}`,
-          "You need to punch out first \n"
-        );
+      if (this.lastStrikeId !== "0")
+        return this.error("You need to punch out first \n");
 
       const punch = await dbAPI.createPunchIn({ project });
       await dbAPI.saveLastPunchId(punch.id);
+
       this.info(
         project,
         `Punched in at ${purple(new Date(punch.punchInAt).toLocaleString())}`
       );
+
+      return [true, punch.id];
     } catch (e) {
-      this.error("STRIKEIN FAILURE", e);
+      this.error(e);
     }
   }
 
   async strikeOut({ n, note }) {
-    const punch = await dbAPI.createPunchOut({
-      punchId: this.LAST_PUNCH_ID,
-      note: n || note ? n : "",
-    });
-    await dbAPI.saveLastPunchId(0);
+    try {
+      const punch = await dbAPI.createPunchOut({
+        id: this.lastStrikeId,
+        note: n || note ? n : "",
+      });
+      await dbAPI.saveLastPunchId(0);
 
-    const duration = new Duration(punch.punchOutAt - punch.punchInAt);
+      const duration = new Duration(punch.punchOutAt - punch.punchInAt);
 
-    this.info(
-      punch.project,
-      `Punched out at ${purple(new Date(punch.punchOutAt).toLocaleString())} ${
-        duration.verbose
-      }`
-    );
+      this.info(
+        punch.project,
+        `Punched out at ${purple(
+          new Date(punch.punchOutAt).toLocaleString()
+        )} ${duration.verbose}`
+      );
+
+      return [true, this.lastStrikeId];
+    } catch (e) {
+      this.error(e);
+    }
   }
 
-  async getPunch({ punchId }) {
-    const punch = await dbAPI.getPunchById(punchId);
-    this.log(
-      punchId,
-      `Punch In at: 
-      ${punch.punchInAt}
-      \n project:
-      ${punch.project}`
-    );
+  async getStrike({ id }) {
+    return await dbAPI.getPunchById(id);
   }
   async clear() {
     try {
       await dbAPI.clear();
-      this.log("SUCCESS", "all records were deleted");
+      this.success("all records were deleted");
     } catch (e) {
-      this.error("ERR", e);
+      this.error(e);
     }
   }
   async listPunchByProject({ project, s, short, h, html, ...rest }) {
@@ -122,7 +132,7 @@ class CLIStore {
 
       this.table(getProjectHTMLReport(punchList));
     } catch (e) {
-      this.error("Error RPRT", e);
+      this.error(e);
     }
   }
 }

@@ -24,18 +24,18 @@ async function clear() {
     throw new Error("Couln't delete");
   }
 }
-async function createPunchOut({ punchId, note }) {
+async function createPunchOut({ id, note }) {
   try {
-    let punch = await getPunchById(punchId);
+    let punch = await getPunchById(id);
     punch = {
       ...punch,
       punchOutAt: new Date().getTime(),
       note,
     };
-    await db.put(punchId, JSON.stringify(punch));
+    await db.put(id, JSON.stringify(punch));
     return punch;
   } catch (e) {
-    throw new Error("Couln't register punch out");
+    console.error(e);
   }
 }
 
@@ -93,9 +93,8 @@ async function getLastPunchId() {
     const lastPunchId = await db.get("LAST_PUNCH_ID");
     return lastPunchId;
   } catch (e) {
-    console.log(e);
     await saveLastPunchId(0);
-    console.log("LAST_PUNCH_ID default value created");
+    return getLastPunchId();
   }
 }
 
